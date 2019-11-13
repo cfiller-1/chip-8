@@ -37,7 +37,6 @@ class Chip8:
     self.stack = np.zeros(16, dtype="uint16")
     self.sp = np.uint8(0)
     self.key = np.zeros(16, dtype="uint8")
-    self.effect = pygame.mixer.Sound("./beep.wav")
 
   def load_rom(self, path):
     f =  open(path, "rb")
@@ -386,6 +385,23 @@ class Graphics:
   def clear(self):
     self.c8surface.fill((255, 255, 255))
 
+class Sound:
+  def __init__(self):
+    path = "./beep.wav"
+    self.enabled = True
+    if os.path.isfile(path):
+      self.effect = pygame.mixer.Sound(path)
+    else:
+      self.enabled = False
+      print("sound file \"beep.wav\" not found, continuing without sound")
+
+  def start(self):
+    if self.enabled:
+      self.effect.play(-1)
+
+  def stop(self):
+    if self.enabled:
+      self.effect.stop()
 
 def main():
     # read command line argument
@@ -400,6 +416,7 @@ def main():
     clock = pygame.time.Clock()
     chip8 = Chip8()
     graphics = Graphics()
+    sound = Sound()
     chip8.load_sprites()
     chip8.load_rom(path)
 
@@ -417,11 +434,11 @@ def main():
         chip8.delay_timer -= 1
       if chip8.sound_timer > 0:
         if(sound_active == False):
-          chip8.effect.play(-1)
+          sound.start()
           sound_active = True
         chip8.sound_timer -= 1
         if(chip8.sound_timer == 0):
-          chip8.effect.stop()
+          sound.stop()
           sound_active = False
       # event handling, gets all event from the event queue
       for event in pygame.event.get():
