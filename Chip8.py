@@ -24,6 +24,40 @@ E = bytes((0xF0, 0x80, 0xF0, 0x80, 0xF0))
 F = bytes((0xF0, 0x80, 0xF0, 0x80, 0x80))
 
 class Chip8:
+  def __init__(self, path):
+    self.graphics = Graphics()
+    self.sound = Sound()
+    self.cpu = Cpu()
+    self.clock = pygame.time.Clock()
+    self.sound_active = False
+    self.load_rom(path)
+
+  def load_rom(self, path):
+    f =  open(path, "rb")
+    b = os.path.getsize(path)
+    self.cpu.memory[0x200 : 0x200 + b] = f.read()
+    f.close()
+
+  def run(self):
+    for x in range (8):
+      self.cpu.cycle()
+    self.graphics.update(self.cpu.gfx)
+    self.update_timers()
+    self.clock.tick(60)
+
+  def update_timers(self):
+    if self.cpu.delay_timer > 0:
+      self.cpu.delay_timer -= 1
+    if self.cpu.sound_timer > 0:
+      if(self.sound_active == False):
+        self.sound.start()
+        self.sound_active = True
+      self.cpu.sound_timer -= 1
+      if(self.cpu.sound_timer == 0):
+        self.sound.stop()
+        self.sound_active = False
+
+class Cpu:
   def __init__(self):
     self.opcode = np.uint16(0)
     self.memory = bytearray(4096)
@@ -37,12 +71,7 @@ class Chip8:
     self.stack = np.zeros(16, dtype="uint16")
     self.sp = np.uint8(0)
     self.key = np.zeros(16, dtype="uint8")
-
-  def load_rom(self, path):
-    f =  open(path, "rb")
-    b = os.path.getsize(path)
-    self.memory[0x200 : 0x200 + b] = f.read()
-    f.close()
+    self.load_sprites()
 
   def load_sprites(self):
     self.memory[0x000 : 0x005] = ZERO
@@ -376,8 +405,8 @@ class Graphics:
     pygame.display.set_icon(self.c8surface)
     self.c8display = pygame.display.set_mode((800, 400))
 
-  def update(self, chip8):
-    self.c8surface.get_buffer().write(bytes(chip8.gfx))
+  def update(self, array):
+    self.c8surface.get_buffer().write(bytes(array))
     displaysurface = pygame.transform.scale(self.c8surface, (800, 400))
     self.c8display.blit(displaysurface, (0, 0))
     pygame.display.update()
@@ -413,33 +442,14 @@ def main():
 
     pygame.init()
     random.seed()
-    clock = pygame.time.Clock()
-    chip8 = Chip8()
-    graphics = Graphics()
-    sound = Sound()
-    chip8.load_sprites()
-    chip8.load_rom(path)
+    chip8 = Chip8(path)
 
     # define a variable to control the main loop
     running = True
-    sound_active = False
 
     # main loop
     while running:
-      for x in range (8):
-        chip8.cycle()
-      graphics.update(chip8)
-      clock.tick(60)
-      if chip8.delay_timer > 0:
-        chip8.delay_timer -= 1
-      if chip8.sound_timer > 0:
-        if(sound_active == False):
-          sound.start()
-          sound_active = True
-        chip8.sound_timer -= 1
-        if(chip8.sound_timer == 0):
-          sound.stop()
-          sound_active = False
+      chip8.run()
       # event handling, gets all event from the event queue
       for event in pygame.event.get():
           # only do something if the event is of type QUIT
