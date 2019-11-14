@@ -25,7 +25,7 @@ F = bytes((0xF0, 0x80, 0xF0, 0x80, 0x80))
 
 class Chip8:
   def __init__(self, path):
-    self.graphics = Graphics()
+    self.graphics = Graphics(800, 400)
     self.sound = Sound()
     self.cpu = Cpu()
     self.clock = pygame.time.Clock()
@@ -399,15 +399,22 @@ class Cpu:
     self.pc += 2
 
 class Graphics:
-  def __init__(self):
+  def __init__(self, width, height):
+    self.width = width
+    self.height = height
     self.c8surface = pygame.Surface((64, 32))
     pygame.display.set_caption("Chip8")
     pygame.display.set_icon(self.c8surface)
-    self.c8display = pygame.display.set_mode((800, 400))
+    self.c8display = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+
+  def resize(self, width, height):
+    self.width = width
+    self.height = height
+    self.c8display = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
 
   def update(self, array):
     self.c8surface.get_buffer().write(bytes(array))
-    displaysurface = pygame.transform.scale(self.c8surface, (800, 400))
+    displaysurface = pygame.transform.scale(self.c8surface, (self.width, self.height))
     self.c8display.blit(displaysurface, (0, 0))
     pygame.display.update()
 
@@ -452,9 +459,9 @@ def main():
       chip8.run()
       # event handling, gets all event from the event queue
       for event in pygame.event.get():
-          # only do something if the event is of type QUIT
+          if event.type == pygame.VIDEORESIZE:
+            chip8.graphics.resize(event.w, event.h)
           if event.type == pygame.QUIT:
-              # change the value to False, to exit the main loop
               running = False
 
 
