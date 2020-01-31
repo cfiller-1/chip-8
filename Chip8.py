@@ -228,7 +228,7 @@ class Cpu:
           self.V[0xF] = 1
         else:
           self.V[0xF] = 0
-        self.V[x] *= 2
+        self.V[x] = np.uint8(self.V[x] * 2)
 
     #Skip next instruction if Vx != Vy.
     elif 0x8FFF < opcode and 0xA000 > opcode:
